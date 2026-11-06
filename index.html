@@ -189,12 +189,22 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
   opacity:.14;filter:saturate(.7)}
 
 /* Modo opciones: sin escritura ni micrófono */
-#form,#chipsToggle,#mic,.m .sig{display:none!important}
+#form,#chipsToggle,#mic,.m .sig,#ctx{display:none!important}
 #chips.menu{display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px 14px;max-height:38vh;overflow-y:auto;border-top:1px solid var(--slate-200);background:#fff}
 #chips.menu .chip{flex:0 0 auto;text-align:left;max-width:100%}
 #chips.menu .nav{display:flex;gap:8px;width:100%;margin-top:2px}
 #chips.menu .nav .chip{flex:0 0 auto;background:var(--slate-50);border-color:var(--slate-200);color:var(--slate-700);font-size:.85rem;padding:7px 12px}
 #chips.menu .ruta{width:100%;font-size:.78rem;color:var(--slate-500);font-weight:600;margin-bottom:2px}
+
+.chat .panel-h{flex-wrap:nowrap;gap:8px}
+.chat .panel-h h2{white-space:nowrap;flex:0 0 auto}
+.chat .panel-h .dot{flex:0 0 auto}
+.chat .ctx{flex:1 1 auto;min-width:0;max-width:none!important;overflow:hidden;text-overflow:ellipsis}
+.chat .hbtn{flex:0 0 auto;width:40px;height:40px}
+.chat #btnBig{margin-left:auto}
+@media (max-width:420px){.chat .panel-h h2{font-size:1rem}}
+/* un solo scroll: las opciones van dentro de la conversación */
+#msgs #chips.menu{max-height:none;overflow:visible;border-top:none;background:transparent;padding:4px 0 8px}
 </style>
 </head>
 <body>
@@ -223,7 +233,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 
     <aside class="panel chat">
       <div class="panel-h"><span class="dot"></span><h2>Asistente virtual</h2><span class="ctx" id="ctx" hidden></span>
-        <button type="button" class="hbtn" id="btnBig" title="Agrandar" style="margin-left:auto"><svg class="i" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
+        <button type="button" class="hbtn" id="btnBig" title="Agrandar"><svg class="i" viewBox="0 0 24 24"><path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/></svg></button>
         <button type="button" class="hbtn" id="btnClose" title="Cerrar"><svg class="i" viewBox="0 0 24 24"><path d="M18 6 6 18M6 6l12 12"/></svg></button></div>
       <div class="msgs" id="msgs" aria-live="polite"></div>
       <div class="chips" id="chips"></div>
@@ -682,9 +692,9 @@ function abrirCarrera(id){ const c=carrera(id); estado.carrera=id; estado.conv=i
    Chat
    ===================================================================== */
 let historial = [];
-function burbuja(html, quien){ const d=document.createElement("div"); d.className="m "+quien; d.innerHTML=html; $("#msgs").appendChild(d); $("#msgs").scrollTop=1e9; return d; }
+function burbuja(html, quien){ const d=document.createElement("div"); d.className="m "+quien; d.innerHTML=html; const ch=$("#chips"); if (ch && ch.parentNode===$("#msgs")) $("#msgs").insertBefore(d,ch); else $("#msgs").appendChild(d); $("#msgs").scrollTop=1e9; return d; }
 function bienvenida(){
-  $("#msgs").innerHTML=""; historial=[];
+  const ch=$("#chips"); $("#msgs").innerHTML=""; $("#msgs").appendChild(ch); historial=[];
   burbuja(`¡Hola! 👋 Soy el asistente del <strong>IES N°10</strong>. Te puedo contar sobre las <strong>24 carreras</strong> de nuestras 4 sedes: requisitos de ingreso, duración, materias, perfil del egresado, salida laboral, turno y dónde se cursa.<br><br><strong>Tocá una opción de abajo</strong> para empezar. También podés explorar las sedes en la página.`, "bot");
 }
 function ocultarChips(){}
@@ -1124,7 +1134,7 @@ function responder(q, ctx){
 function verMenu(){
   const id = pila[pila.length-1], m = MENU(id);
   const ruta = pila.map(x=>MENU(x).t).join(" › ");
-  $("#chips").className = "chips menu";
+  $("#chips").className = "chips menu"; $("#msgs").appendChild($("#chips"));
   $("#chips").innerHTML = (pila.length>1?`<div class="ruta">${esc(ruta)}</div>`:"") + m.op.map((o,i)=>`<button class="chip" data-i="${i}">${esc(o.t)}</button>`).join("") +
     (pila.length>1 ? `<div class="nav"><button class="chip" data-nav="back">⬅ Volver</button><button class="chip" data-nav="home">🏠 Menú principal</button></div>` : "");
   const ctxEl=$("#ctx"); const c = id.startsWith("car:") ? carrera(id.split(":")[1]) : null;
@@ -1134,7 +1144,8 @@ function elegir(o){
   activo(); burbuja(esc(o.t.replace(/^[^\p{L}\p{N}¿¡]+/u,"")), "user");
   if (o.go) { pila.push(o.go); const m = MENU(o.go); const html = m.introQ ? responder(m.introQ, m.ctx) : m.intro; if (html) burbuja(html,"bot"); }
   else { burbuja(o.html ? limpiar(o.html()) : responder(o.q, o.ctx), "bot"); }
-  sonar(); verMenu(); $("#msgs").scrollTop = 1e9;
+  sonar(); verMenu(); const bots=[...document.querySelectorAll("#msgs .m.bot")]; const last=bots[bots.length-1];
+  const box=$("#msgs"); if (last) box.scrollTop = last.offsetTop - box.offsetTop - 60; else box.scrollTop=1e9;
 }
 function setChips(){
   if (estado.carrera) { pila = ["inicio","sedes","sede:"+carrera(estado.carrera).sede,`tipo:${carrera(estado.carrera).sede}:${carrera(estado.carrera).tipo}`,"car:"+estado.carrera]; }
