@@ -191,7 +191,7 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 /* Modo opciones: sin escritura ni micrófono */
 #form,#chipsToggle,#mic,.m .sig{display:none!important}
 #chips.menu{display:flex;flex-wrap:wrap;gap:8px;padding:10px 14px 14px;max-height:38vh;overflow-y:auto;border-top:1px solid var(--slate-200);background:#fff}
-#chips.menu .chip{flex:1 1 auto;text-align:left}
+#chips.menu .chip{flex:0 0 auto;text-align:left;max-width:100%}
 #chips.menu .nav{display:flex;gap:8px;width:100%;margin-top:2px}
 #chips.menu .nav .chip{flex:0 0 auto;background:var(--slate-50);border-color:var(--slate-200);color:var(--slate-700);font-size:.85rem;padding:7px 12px}
 #chips.menu .ruta{width:100%;font-size:.78rem;color:var(--slate-500);font-weight:600;margin-bottom:2px}
@@ -1047,8 +1047,8 @@ function MENU(id){
     return {t:b==="tecnicatura"?"Tecnicaturas":"Profesorados", intro:`<p>${b==="tecnicatura"?"Tecnicaturas (3 años)":"Profesorados (4 años)"} en <strong>${esc(sede(a).nombre)}</strong>. Elegí una carrera:</p>`, op: cs.map(c=>({t:corto(c.nombre), go:"car:"+c.id}))}; }
   if (k==="car") { const c=carrera(a);
     return {t:corto(c.nombre), introQ:"info", ctx:a, op:[
-      {t:"📋 Datos generales", q:"info", ctx:a},{t:"📚 Materias por año", q:"sus materias", ctx:a},{t:"🔗 Correlatividades", q:"correlatividades", ctx:a},
-      {t:"👤 Perfil y salida laboral", html:()=>perfilHTML(c)},{t:"🕒 Horario y sede", html:()=>{ const s=sede(c.sede); return `<p><strong>${esc(c.nombre)}</strong></p><ul><li><strong>Sede:</strong> ${esc(s.nombre)} (${esc(s.lugar)})</li><li><strong>Dirección:</strong> ${esc(s.dir)}</li><li><strong>Horario:</strong> ${esc(s.horario)}</li></ul><p class="t-note">El horario de la carrera es el mismo que el de su sede.</p>`; }},
+      {t:"📋 Datos generales", q:"info", ctx:a},...(planDe(c).length?[{t:"📚 Materias por año", q:"sus materias", ctx:a}]:[]),...(CORR[a]?[{t:"🔗 Correlatividades", q:"correlatividades", ctx:a}]:[]),
+      ...((seccionDe(c,/^perfil|^finalidad|^objetivo/)||seccionDe(c,/^ambito/))?[{t:"👤 Perfil y salida laboral", html:()=>perfilHTML(c)}]:[]),{t:"🕒 Horario y sede", html:()=>{ const s=sede(c.sede); return `<p><strong>${esc(c.nombre)}</strong></p><ul><li><strong>Sede:</strong> ${esc(s.nombre)} (${esc(s.lugar)})</li><li><strong>Dirección:</strong> ${esc(s.dir)}</li><li><strong>Horario:</strong> ${esc(s.horario)}</li></ul>`; }},
       {t:"🎓 Validez del título", q:"tiene validez?", ctx:a},{t:"📄 Documentos oficiales", q:"resoluciones de la carrera", ctx:a}]}; }
   if (k==="insc") return {t:"Inscripción e ingreso", intro:"<p>¿Qué querés saber de la inscripción?</p>", op:[
     {t:"📋 Requisitos y papeles", q:"¿Qué necesito para inscribirme?"},{t:"📅 Fechas de inscripción", q:"¿Cuándo son las inscripciones?"},{t:"💻 Preinscripción online (NEXO)", q:"inscripcion online"},
@@ -1083,14 +1083,14 @@ function MENU(id){
   if (k==="valcar") return {t:"Validez por carrera", intro:"<p>Elegí la carrera:</p>", op: CARRERAS.map(c=>({t:corto(c.nombre), q:"tiene validez?", ctx:c.id}))};
   if (k==="becas") return {t:"Becas y beneficios", intro:"<p>Elegí una opción:</p>", op:[
     {t:"🎓 Beca Progresar", q:"hay becas?"},{t:"🚌 Boleto gratuito (BEGUP)", q:"como saco el begup"},{t:"📄 Constancia de alumno regular", q:"constancia de alumno regular"},{t:"📚 Biblioteca digital gratuita", q:"tienen biblioteca?"},{t:"💵 ¿Es gratis estudiar?", q:"cuanto cuesta"}]};
-  if (k==="elegir") return {t:"No sé qué estudiar", intro:"<p>¡Te ayudo! ¿Qué te gusta o en qué te imaginás trabajando?</p>", op:[
+  if (k==="elegir") return {t:"No sé qué estudiar", intro:"<p>Seleccioná el área que más te interesa:</p>", op:[
     ...GUSTOS.map(([t,i])=>({t, go:"gusto:"+i})),{t:"⏱ Carreras más cortas", q:"quiero algo corto"},{t:"🚫 Carreras que no hay en el IES", go:"nohay"},{t:"📋 Ver todas las carreras", q:"que carreras hay"},{t:"🗣 ¿Qué carreras tienen inglés?", q:"hay ingles en todas las carreras?"}]};
   if (k==="gusto") { const g=INTERESES[+a]; const ids=g[2];
-    return {t:g[1].replace(/^Si te (gusta|gustan|interesa) /,""), intro: listaIds(ids, g[1]+", te pueden servir:")+"<p>Tocá una para ver más:</p>", op: ids.map(id=>({t:corto(carrera(id).nombre), go:"car:"+id}))}; }
+    return {t:g[1].replace(/^Si te (gusta|gustan|interesa) /,""), intro: listaIds(ids, g[1]+", te pueden servir:")+"<p>Seleccioná una carrera para ver más información:</p>", op: ids.map(id=>({t:corto(carrera(id).nombre), go:"car:"+id}))}; }
   if (k==="nohay") return {t:"Carreras que no hay", intro:"<p>¿Qué carrera buscabas?</p>", op: NO_HAY.map(([re,nombre])=>({t:nombre, q:"quiero estudiar "+nombre}))};
   if (k==="otras") return {t:"Otras consultas", intro:"<p>Elegí una opción:</p>", op:[
-    {t:"💵 ¿Es gratis?", q:"cuanto cuesta"},{t:"🏢 ¿Qué es la secretaría?", q:"que es bedelia"},{t:"🕒 Horario de la secretaría", q:"a que hora atiende la secretaria"},{t:"📞 Contacto", q:"telefono del instituto"},
-    {t:"🌐 Página del IES", q:"tienen pagina web?"},{t:"📍 Dónde quedan las sedes", q:"donde quedan las sedes"},{t:"🚌 Cómo llegar", q:"como llego a la sede"},{t:"🏫 El instituto", go:"inst"},{t:"🤖 ¿Quién hizo este asistente?", q:"quien te hizo"}]};
+    {t:"💵 ¿Es gratis?", q:"cuanto cuesta"},{t:"🏢 ¿Qué es la secretaría?", q:"que es bedelia"},{t:"🕒 Horario de la secretaría", q:"a que hora atiende la secretaria"},{t:"📞 Contacto", html:()=>`<p>Los datos de contacto (teléfono, correo y redes) se informan en la <strong>secretaría de cada sede</strong>.</p>` + responder("donde quedan las sedes")},
+    {t:"🌐 Página del IES", q:"tienen pagina web?"},{t:"📍 Dónde quedan las sedes", q:"donde quedan las sedes"},{t:"🚌 Cómo llegar", html:()=>responder("donde quedan las sedes") + `<p>🚌 Como alumno del IES podés tramitar el <strong>BEGUP</strong> (Boleto Estudiantil Gratuito Universal Provincial), que sirve para colectivos urbanos e interurbanos de Jujuy. Lo encontrás en <strong>Becas y beneficios</strong>.</p>`},{t:"🏫 El instituto", go:"inst"},{t:"🤖 ¿Quién hizo este asistente?", q:"quien te hizo"}]};
   if (k==="inst") return {t:"El instituto", intro:"<p>Elegí una opción:</p>", op:[
     {t:"Comedor", q:"hay comedor?"},{t:"Wifi y computadoras", q:"hay wifi en el instituto?"},{t:"Centro de estudiantes", q:"hay centro de estudiantes?"},{t:"Uniforme", q:"hay uniforme?"},
     {t:"Materiales", q:"hay que comprar materiales?"},{t:"¿Necesito computadora?", q:"necesito computadora?"},{t:"Ir a ver una clase", q:"puedo ir a ver una clase?"}]};
@@ -1101,6 +1101,17 @@ function seccionDe(c, re){ const s = secciones(c.md).secs.filter(x=>re.test(norm
 function perfilHTML(c){ const p = seccionDe(c,/^perfil|^finalidad|^objetivo/), a = seccionDe(c,/^ambito/);
   if (!p && !a) return `<p>No tengo cargado el perfil de <strong>${esc(c.nombre)}</strong>.</p><p class="t-note">Consultalo en la secretaría de la sede.</p>`;
   return `<p><strong>${esc(c.nombre)}</strong></p>` + (p?`<p><strong>👤 Perfil del egresado</strong></p>${p}`:"") + (a?`<p><strong>💼 Dónde puede trabajar</strong></p>${a}`:""); }
+
+/* Ajusta el texto al modo opciones: tono formal y sin invitaciones a escribir */
+function limpiar(h){
+  return h
+    .replace(/(Preguntame|Podés preguntarme|Decime (la|tu) carrera)[^<]*?(\?"|"\.|\.|\?»)(\)?)/g,"")
+    .replace(/Ojo: /g,"Importante: ").replace(/<p>No: todas las carreras/g,"<p>Todas las carreras").replace(/<p>Sí: /g,"<p>").replace(/<p>Sí, podés/g,"<p>Podés")
+    .replace(/Ese dato no está en la información que tengo: consultalo en la/g,"Esta información se consulta en la")
+    .replace(/No tengo cargados los datos de contacto del IES \(teléfono, mail o redes\)\./,"Los datos de contacto (teléfono, correo y redes) se informan en la secretaría de cada sede.")
+    .replace(/No tengo los recorridos de colectivo, pero te puedo dar las direcciones de las sedes\./,"Estas son las direcciones de las sedes.")
+    .replace(/\s+\.\s*(<\/p>)/g,".$1").replace(/\.\s*\./g,".").replace(/<p class="t-note">\s*<\/p>/g,"").replace(/<p>\s*<\/p>/g,"");
+}
 let pila = ["inicio"];
 function responder(q, ctx){
   if (ctx) { estado.conv = ctx; }
@@ -1108,7 +1119,7 @@ function responder(q, ctx){
   let r = respuestaDirecta(q);
   if (!r) r = mdLite(respuestaLocal(q).split("\n"));
   estado.carrera = keep;
-  return r;
+  return limpiar(r);
 }
 function verMenu(){
   const id = pila[pila.length-1], m = MENU(id);
@@ -1122,7 +1133,7 @@ function verMenu(){
 function elegir(o){
   activo(); burbuja(esc(o.t.replace(/^[^\p{L}\p{N}¿¡]+/u,"")), "user");
   if (o.go) { pila.push(o.go); const m = MENU(o.go); const html = m.introQ ? responder(m.introQ, m.ctx) : m.intro; if (html) burbuja(html,"bot"); }
-  else { burbuja(o.html ? o.html() : responder(o.q, o.ctx), "bot"); }
+  else { burbuja(o.html ? limpiar(o.html()) : responder(o.q, o.ctx), "bot"); }
   sonar(); verMenu(); $("#msgs").scrollTop = 1e9;
 }
 function setChips(){
@@ -1198,7 +1209,7 @@ function respuestaDirecta(q){
     if (!c) return null;
     const anio = anioPedido(n), horas = pideHoras || /hora|catedra/.test(n), tb = tablaPlan(c,{anio,horas});
     if (!tb) return `<p>No tengo el plan de estudio de <strong>${esc(c.nombre)}</strong> en los documentos oficiales. Consultá en secretaría.</p>`;
-    return `<p><strong>${esc(c.nombre)}</strong>${anio?` · ${anio}° año`:""}</p>${tb}<p class="t-note">${horas?"Horas cátedra semanales. ":""}Fuente: Diseño Curricular Res. ${esc(c.res)}.</p>${REGIMEN[c.id]?"":`<p class="t-note">Cómo se aprueba cada materia (promoción o examen final) no figura materia por materia en el diseño de esta carrera${c.tipo==="profesorado"?" (el diseño de los profesorados solo indica el formato: materia, taller, seminario o práctica, y remite al Régimen Académico provincial)":""}. La regla general: promoción con 7 o más en parciales y 80% de trabajos prácticos (la asistencia para promocionar la define cada docente); las prácticas profesionalizantes suelen ser solo por promoción. Confirmalo en secretaría.</p>`}`;
+    return `<p><strong>${esc(c.nombre)}</strong>${anio?` · ${anio}° año`:""}</p>${tb}<p class="t-note">${horas?"Horas cátedra semanales. ":""}Fuente: Diseño Curricular Res. ${esc(c.res)}.</p>${REGIMEN[c.id]?"":`<p class="t-note">Cómo se aprueba cada materia (promoción o examen final) no figura materia por materia en el diseño de esta carrera${c.tipo==="profesorado"?" (el diseño de los profesorados solo indica el formato: materia, taller, seminario o práctica, y remite al Régimen Académico provincial)":""}. Consultá en la secretaría de tu sede qué materias se aprueban por promoción y cuáles por examen final.</p>`}`;
   }
   if (/que carreras|carreras hay|oferta|todas las carreras/.test(n) && !relevantes(q).length) {
     const corto = s => s.replace(/^Tec\. Sup\. en /,"").replace(/^Prof\. de /,"").replace(/^Educación /,"Educ. ");
