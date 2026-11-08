@@ -626,5 +626,30 @@ tHop = setInterval(()=>{ if(chatAbierto()) return; const l=$("#launcher"); l.cla
 let actx = null;
 function sonar(){ if (store.get("sonido","1")!=="1") return; try{ actx = actx || new (window.AudioContext||window.webkitAudioContext)(); const now=actx.currentTime;
   [[880,0],[1318.5,0.11]].forEach(([f,d])=>{ const o=actx.createOscillator(), g=actx.createGain(); o.type="sine"; o.frequency.value=f; g.gain.setValueAtTime(0.0001,now+d); g.gain.exponentialRampToValueAtTime(0.22,now+d+0.02); g.gain.exponentialRampToValueAtTime(0.0001,now+d+0.35); o.connect(g).connect(actx.destination); o.start(now+d); o.stop(now+d+0.4); }); }catch(e){} }
+/* =====================================================================
+   RESPONSIVO
+   ===================================================================== */
+/* Tablas: si no entran en el ancho disponible, cada fila pasa a verse como tarjeta (vale para cualquier tabla, actual o futura) */
+function adaptarTablas(){
+  document.querySelectorAll("table.plan").forEach(t => {
+    if (!t.dataset.etiquetas) {   // copia el nombre de cada columna a sus celdas, para mostrarlo en modo tarjeta
+      const cab = [...(t.querySelector("tr:has(> th)") || {children:[]}).children].map(th => th.textContent.trim());
+      t.querySelectorAll("tr").forEach(tr => [...tr.children].forEach((td,i) => { if (td.tagName==="TD" && !td.hasAttribute("colspan") && cab[i]) td.dataset.label = cab[i]; }));
+      t.dataset.etiquetas = "1";
+    }
+    const cont = t.parentElement; if (!cont || !cont.clientWidth) return;   // tabla oculta (sección cerrada): se revisa al abrirla
+    t.classList.remove("apilada");
+    const noEntra = Math.max(t.scrollWidth, t.offsetWidth) > cont.clientWidth + 1;
+    const apretada = [...t.querySelectorAll("tr > td:first-child:not([colspan])")].some(td => td.clientWidth < 110);   // la columna del nombre quedó demasiado angosta
+    if (noEntra || apretada) t.classList.add("apilada");
+  });
+}
+let tAdaptar = 0;
+const pedirAdaptar = () => { cancelAnimationFrame(tAdaptar); tAdaptar = requestAnimationFrame(adaptarTablas); };
+new MutationObserver(pedirAdaptar).observe(document.body, {childList:true, subtree:true});
+document.addEventListener("toggle", pedirAdaptar, true);   // al abrir una sección desplegable
+addEventListener("resize", pedirAdaptar);                    // al girar el celular o cambiar el tamaño de la ventana
+/* Globito «¿Te ayudo?»: en celular y tablet se esconde cuando la persona se desplaza para leer, así no tapa contenido */
+addEventListener("scroll", () => { if (innerWidth <= 1024 && !chatAbierto() && scrollY > 80) { teaserOff = true; $("#teaser").classList.add("hide"); } }, {passive:true});
 reiniciar(); activo();
 setTimeout(()=>{ const l=$("#launcher"); l.classList.add("hop"); }, 900);

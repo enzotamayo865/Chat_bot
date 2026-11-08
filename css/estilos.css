@@ -184,3 +184,37 @@ body::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;
 @media (max-width:420px){.chat .panel-h h2{font-size:1rem}}
 /* un solo scroll: las opciones van dentro de la conversación */
 #msgs #chips.menu{max-height:none;overflow:visible;border-top:none;background:transparent;padding:4px 0 8px}
+
+/* =====================================================================
+   RESPONSIVO — celular, tablet y compu
+   ===================================================================== */
+/* Tablas que no entran en la pantalla: cada fila se muestra como una tarjeta (lo decide js/app.js → adaptarTablas) */
+table.plan.apilada,table.plan.apilada thead,table.plan.apilada tbody,table.plan.apilada tr,table.plan.apilada td{display:block;width:100%}
+table.plan.apilada thead,table.plan.apilada tr:has(> th){display:none}
+table.plan.apilada tr{padding:10px 12px;border-top:1px solid var(--slate-100)}
+table.plan.apilada tr:first-child{border-top:none}
+table.plan.apilada td{padding:0;border:none;background:transparent!important;text-align:left;white-space:normal}
+table.plan.apilada tr:not(.yr):nth-child(even){background:var(--slate-50)}
+table.plan.apilada td:first-child{font-weight:600;color:var(--slate-900);margin-bottom:4px}
+table.plan.apilada td:not(:first-child){display:inline-flex;flex-wrap:wrap;align-items:center;gap:4px;width:auto;margin:2px 14px 2px 0;font-size:.86rem;color:var(--slate-700)}
+table.plan.apilada td[data-label]:not(:first-child)::before{content:attr(data-label) ":";color:var(--slate-500);font-weight:600;white-space:nowrap}
+table.plan.apilada td:not(:first-child):empty{display:none}
+table.plan.apilada tr.yr{background:var(--emerald-50);padding:8px 12px;border-top:1px solid var(--emerald-200)}
+table.plan.apilada tr.yr td{font-weight:800;color:var(--emerald-800);margin:0}
+/* Red de seguridad: si algo igual no entra (contenido futuro), se puede deslizar en vez de quedar cortado */
+.sec-b{overflow-x:auto}
+.sec-b,.m.bot{overflow-wrap:break-word}
+.sec-b img,.m.bot img{max-width:100%;height:auto}
+/* Espacio al final para que el botón del asistente no tape contenido */
+@media (max-width:1024px){.wrap{padding-bottom:110px}}
+/* Celular acostado o pantallas bajas: el chat ocupa toda la pantalla, como en el celular vertical */
+@media (max-height:500px) and (max-width:1024px){.launcher.open{display:none}.chat,.chat.big{right:0;bottom:0;width:100vw;height:100dvh;border-radius:0}.chat .panel-h{border-radius:0}}
+/* Celulares */
+@media (max-width:600px){
+  .teaser{max-width:calc(100vw - 120px);padding:10px 30px 10px 12px;font-size:.9rem}
+}
+@media (max-width:360px){
+  .brand b{font-size:.74rem}.brand span{font-size:.62rem}
+  .hero h1{font-size:1.45rem}
+  table.plan.apilada td:not(:first-child){margin-right:10px}
+}
