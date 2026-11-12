@@ -235,6 +235,13 @@ function nombresCorr(c, s){
   if (!s) return "—";
   const R = CORR[c.id]; return s.split(",").map(x=>x.trim()).filter(Boolean).map(x=>{ const r = /^\d+$/.test(x) ? R.find(y=>y[0]===+x) : null; return r ? esc(r[1]) : esc(x); }).join(", ");
 }
+function correlProf(c, R, anio){
+  const anios = [...new Set(R.map(r=>r[5]))].filter(a => !anio || a===anio);
+  const cel = (s, et) => s ? `<div><span class="t-note">${et}:</span> ${nombresCorr(c,s)}</div>` : "";
+  const body = anios.map(a => `<tr class="yr"><td colspan="3">${a}° año</td></tr>` + R.filter(r=>r[5]===a).map(r => `<tr><td>${esc(r[1])}</td>${!r[2]&&!r[3]&&!r[4]?`<td colspan="2"><span class='t-note'>sin correlativas</span></td>`:`<td>${(cel(r[4],"Aprobada")+cel(r[2],"Regularizada"))||"—"}</td><td>${r[3]?nombresCorr(c,r[3]):"—"}</td>`}</tr>`).join("")).join("");
+  const ej = (R.find(r=>r[5]===2&&(r[2]||r[4]))||R[0])[1];
+  return `<p><strong>Correlatividades · ${esc(c.nombre)}</strong>${anio?` · ${anio}° año`:""}</p><table class="plan"><thead><tr><th>Materia</th><th>Para cursar</th><th>Para rendir o promocionar</th></tr></thead><tbody>${body}</tbody></table><p class="t-note">Para rendir o promocionar, las correlativas tienen que estar aprobadas. Las materias de 1° año no tienen correlativas. Las del Campo de la Práctica no se pueden rendir por examen final ni en condición de libre. Fuente: Régimen de Acreditación y Correlatividades, Res. N° ${esc(CORR_RES[c.id]||"")}. Podés preguntarme por una materia puntual, por ejemplo "¿qué necesito para cursar ${esc(ej)}?".</p>`;
+}
 function correlDe(c, q){
   const R = CORR[c.id];
   if (!R) return c.tipo==="profesorado" ? `<p>Las correlatividades de <strong>${esc(c.nombre)}</strong> consultalas en <strong>secretaría</strong> de tu sede.</p>` : `<p>No tengo cargadas las correlatividades de <strong>${esc(c.nombre)}</strong>. Consultalas en <strong>secretaría</strong> de tu sede.</p>`;
@@ -244,10 +251,11 @@ function correlDe(c, q){
            || R.filter(r => { const w = norm(r[1]).split(" ").filter(x=>x.length>4); return w.length && w.every(x=>n.includes(x)); })[0];
   if (mat && norm(c.nombre).includes(norm(mat[1])) && !/\b(cursar|rendir|cursarla|rendirla|materia)\b/.test(n)) mat = null;
   if (mat) {
-    const req = R.filter(r => (r[2]+","+r[3]).split(",").map(x=>x.trim()).includes(String(mat[0])));
-    return `<p><strong>${esc(mat[1])}</strong> (${esc(c.nombre)})</p><ul><li><strong>Para cursarla</strong> necesitás tener <strong>regularizada</strong>: ${nombresCorr(c,mat[2])}</li><li><strong>Para rendirla</strong> necesitás tener <strong>aprobada</strong>: ${nombresCorr(c,mat[3])}</li></ul>${req.length?`<p class="t-note">A su vez, ${esc(mat[1])} es correlativa de: ${req.map(r=>esc(r[1])).join(", ")}.</p>`:""}`;
+    const req = R.filter(r => (r[2]+","+r[3]+","+(r[4]||"")).split(",").map(x=>x.trim()).includes(String(mat[0])));
+    return `<p><strong>${esc(mat[1])}</strong> (${esc(c.nombre)})</p><ul>${mat.length>4?`<li><strong>Para cursarla</strong> necesitás tener <strong>aprobada</strong>: ${nombresCorr(c,mat[4])}</li><li><strong>Para cursarla</strong> necesitás tener <strong>regularizada</strong>: ${nombresCorr(c,mat[2])}</li><li><strong>Para rendirla o promocionarla</strong> necesitás tener <strong>aprobada</strong>: ${nombresCorr(c,mat[3])}</li>`:`<li><strong>Para cursarla</strong> necesitás tener <strong>regularizada</strong>: ${nombresCorr(c,mat[2])}</li><li><strong>Para rendirla</strong> necesitás tener <strong>aprobada</strong>: ${nombresCorr(c,mat[3])}</li>`}</ul>${req.length?`<p class="t-note">A su vez, ${esc(mat[1])} es correlativa de: ${req.map(r=>esc(r[1])).join(", ")}.</p>`:""}`;
   }
   const pl = planDe(c); const anio = anioPedido(n);
+  if (R[0].length > 5) return correlProf(c, R, anio);
   let idx = 0; const porAnio = pl.map(a => { const filas = R.slice(idx, idx + a.materias.length); idx += a.materias.length; return {anio:a.anio, filas}; });
   const sel = porAnio.filter(a => !anio || a.anio===anio).filter(a => a.filas.length);
   const body = sel.map(a => `<tr class="yr"><td colspan="3">${a.anio}° año</td></tr>` + a.filas.map(r => `<tr><td>${esc(r[1])}</td>${!r[2]&&!r[3]?`<td colspan="2"><span class='t-note'>sin correlativas</span></td>`:r[2]===r[3]?`<td colspan="2">${nombresCorr(c,r[2])} <span class='t-note'>(para cursar y para rendir)</span></td>`:`<td>${r[2]?nombresCorr(c,r[2]):"—"}</td><td>${r[3]?nombresCorr(c,r[3]):"—"}</td>`}</tr>`).join("")).join("");
