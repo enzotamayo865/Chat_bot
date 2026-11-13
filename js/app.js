@@ -118,6 +118,7 @@ function renderFicha(ex){
   const secs = d.secs.slice().sort((a,b)=>{ const i=x=>{const k=ORDEN_SEC.findIndex(o=>x.t.startsWith(o));return k<0?50:k;}; return i(a)-i(b); });
   ex.innerHTML = `<div class="ficha-hero${y}"><small>${c.tipo==="profesorado"?"Profesorado":"Tecnicatura Superior"} · ${esc(s.nombre)}</small>
       <h3>${esc(titulo)}</h3><div class="kv"><span>⏱ ${c.anios} años</span><span>📄 Res. ${esc(c.res)}</span><span>📍 ${esc(s.lugar)}</span><span>🕒 ${esc(horarioDe(c).replace("Lunes a viernes ","Lun a vie "))}</span></div></div>
+    ${c.apertura?`<div class="warn">⚠ ${esc(c.apertura)}</div>`:""}
     ${revisar.length?`<div class="warn">⚠ ${esc(revisar.join(" ").replace(/^⚠\s*/,""))}</div>`:""}
     <div class="ask-row"><button class="btn-main" data-ask="Contame lo más importante de esta carrera">${IC.chat} Preguntarle al asistente</button></div>
     ${secs.map((x,i)=>{ const tb = /^estructura/i.test(x.t) ? tablaPlan(c,{horas:true}) : ""; const resto = tb ? x.lines.filter(l=>!/^\s*\d°\s*(año)?\s*\(/.test(l)) : x.lines;
@@ -263,6 +264,7 @@ function correlDe(c, q){
 }
 function implDe(c){
   const v = IMPL[c.id];
+  if (c.apertura) return `<p><strong>${esc(c.nombre)}</strong>: ${esc(c.apertura)}</p>`;
   const base = v ? `<p>La última resolución de <strong>implementación</strong> cargada en el portal para <strong>${esc(c.nombre)}</strong> es para la cohorte <strong>${v[0]}</strong>${v[1]?` (${esc(v[1])})`:""}.</p>` : `<p>En el portal no figura una resolución de implementación reciente para <strong>${esc(c.nombre)}</strong>.</p>`;
   const vieja = v && /2022|2024$/.test(v[0]) && !/2025|2026/.test(v[0]);
   return base + `<p>Cada año el Ministerio aprueba qué carreras abren inscripción para la nueva cohorte (año de ingreso). ${vieja||!v?"<strong>No hay resolución reciente cargada</strong>, así que no es seguro que abra el próximo ciclo.":"Para el próximo ciclo (2027) la apertura depende de una nueva resolución."}</p><p class="t-note">Confirmá en secretaría si abre la inscripción para el año que viene.</p>`;
@@ -401,9 +403,11 @@ function MENU(id){
   if (k==="tipo") { const cs=CARRERAS.filter(c=>c.sede===a && c.tipo===b);
     return {t:b==="tecnicatura"?"Tecnicaturas":"Profesorados", intro:`<p>${b==="tecnicatura"?"Tecnicaturas (3 años)":"Profesorados (4 años)"} en <strong>${esc(sede(a).nombre)}</strong>. Elegí una carrera:</p>`, op: cs.map(c=>({t:corto(c.nombre), go:"car:"+c.id}))}; }
   if (k==="car") { const c=carrera(a);
-    return {t:corto(c.nombre), introQ:"info", ctx:a, op:[
+    const aviso = c.apertura ? `<p class="t-note">⚠ <strong>${esc(c.apertura)}</strong></p>` : "";
+    return {t:corto(c.nombre), ...(aviso?{intro:responder("info",a)+aviso}:{introQ:"info"}), ctx:a, op:[
+      ...(aviso?[{t:"📅 Apertura del año que viene", html:()=>implDe(c)}]:[]),
       {t:"📋 Datos generales", q:"info", ctx:a},...(planDe(c).length?[{t:"📚 Materias por año", q:"sus materias", ctx:a}]:[]),...(CORR[a]?[{t:"🔗 Correlatividades", q:"correlatividades", ctx:a}]:[]),
-      ...((seccionDe(c,/^perfil|^finalidad|^objetivo/)||seccionDe(c,/^ambito/))?[{t:"👤 Perfil y salida laboral", html:()=>perfilHTML(c)}]:[]),{t:"🕒 Horario y sede", html:()=>{ const s=sede(c.sede); return `<p><strong>${esc(c.nombre)}</strong></p><ul><li><strong>Sede:</strong> ${esc(s.nombre)} (${esc(s.lugar)})</li><li><strong>Dirección:</strong> ${esc(s.dir)}</li><li><strong>Horario:</strong> ${esc(horarioDe(c))}</li></ul>`; }},
+      ...((seccionDe(c,/^perfil|^finalidad|^objetivo/)||seccionDe(c,/^ambito/))?[{t:"👤 Perfil y salida laboral", html:()=>perfilHTML(c)}]:[]),{t:"🕒 Horario y sede", html:()=>{ const s=sede(c.sede); return `<p><strong>${esc(c.nombre)}</strong></p><ul><li><strong>Sede:</strong> ${esc(s.nombre)} (${esc(s.lugar)})</li><li><strong>Dirección:</strong> ${esc(s.dir)}</li><li><strong>Horario:</strong> ${esc(horarioDe(c))}</li></ul>${aviso}`; }},
       {t:"🎓 Validez del título", q:"tiene validez?", ctx:a},{t:"📄 Documentos oficiales", q:"resoluciones de la carrera", ctx:a}]}; }
   if (k==="insc") return {t:"Inscripción e ingreso", intro:"<p>¿Qué querés saber de la inscripción?</p>", op:[
     {t:"📋 Requisitos y papeles", q:"¿Qué necesito para inscribirme?"},{t:"📅 Fechas de inscripción", q:"¿Cuándo son las inscripciones?"},{t:"💻 Preinscripción online (NEXO)", q:"inscripcion online"},
