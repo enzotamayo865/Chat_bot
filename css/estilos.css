@@ -51,9 +51,15 @@ svg.i{width:1.1em;height:1.1em;flex:none;stroke:currentColor;fill:none;stroke-wi
 .panel{background:#fff;border:1px solid rgba(16,185,129,.12);border-radius:var(--radius-2xl);box-shadow:0 0 40px rgba(16,185,129,.12)}
 .panel-h{display:flex;align-items:center;gap:10px;padding:18px 22px;border-bottom:1px solid var(--slate-100)}
 .panel-h h2{font-size:1.15rem;font-weight:800;color:var(--slate-900)}
-.crumbs{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:.9rem;color:var(--slate-500);padding:14px 22px 0}
-.crumbs button{color:var(--emerald-700);font-weight:600}
-.crumbs button:hover{text-decoration:underline}
+.crumbs{display:flex;align-items:stretch;flex-wrap:wrap;row-gap:6px;font-size:.88rem;padding:14px 22px 0}
+.crumbs .cr{display:inline-flex;align-items:center;min-height:36px;padding:6px 22px 6px 26px;margin-right:-6px;line-height:1.25;font-weight:600;
+  clip-path:polygon(0 0,calc(100% - 14px) 0,100% 50%,calc(100% - 14px) 100%,0 100%,14px 50%);
+  background:var(--emerald-100);color:var(--emerald-800);transition:background .15s,color .15s}
+.crumbs .cr:first-child{padding-left:16px;clip-path:polygon(0 0,calc(100% - 14px) 0,100% 50%,calc(100% - 14px) 100%,0 100%);border-radius:10px 0 0 10px}
+.crumbs button.cr{cursor:pointer}
+.crumbs button.cr:hover,.crumbs button.cr:focus-visible{background:var(--emerald-500);color:#fff;outline:none}
+.crumbs .cr.actual{background:var(--emerald-700);color:#fff;font-weight:700}
+@media (max-width:600px){.crumbs{font-size:.8rem}.crumbs .cr{min-height:32px;padding:5px 18px 5px 22px}.crumbs .cr:first-child{padding-left:12px}}
 .explore{padding:18px 22px 24px}
 
 /* ---------- Tarjetas de sede / carrera ---------- */

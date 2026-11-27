@@ -74,7 +74,7 @@ function tablaPlan(c, {anio=null, horas=false}={}){
 /* =====================================================================
    Exploración por sedes
    ===================================================================== */
-const estado = { sede:null, tipo:"todas", carrera:null, conv:null };
+const estado = { sede:null, tipo:"todas", carrera:null, conv:null, sec:null };
 const IC = {
   sede:'<svg class="i" viewBox="0 0 24 24"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6"/></svg>',
   tec:'<svg class="i" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"/></svg>',
@@ -82,13 +82,21 @@ const IC = {
   arrow:'<svg class="i" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>',
   chat:'<svg class="i" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>'
 };
+/* Cinta de navegación con forma de flecha: Inicio › Sede › Tecnicaturas/Profesorados › Carrera.
+   El último tramo es donde estás; los anteriores se pueden tocar para volver. */
 function crumbs(){
-  const c = [`<button data-go="home">Sedes</button>`];
-  if (estado.sede) c.push(`<span>›</span><button data-go="sede">${esc(sede(estado.sede).nombre)}</button>`);
-  if (estado.carrera) c.push(`<span>›</span><span>${esc(carrera(estado.carrera).nombre)}</span>`);
-  $("#crumbs").innerHTML = c.join("");
+  const car = estado.carrera ? carrera(estado.carrera) : null;
+  const tipo = estado.sede && estado.tipo !== "todas" && (!car || car.tipo === estado.tipo) ? estado.tipo : null;
+  const t = [{go:"home", txt:"🏠 Inicio"}];
+  if (estado.sede) t.push({go:"sede", txt:sede(estado.sede).nombre.replace("Sede ","")});
+  if (tipo) t.push({go:"tipo", txt:tipo === "tecnicatura" ? "Tecnicaturas" : "Profesorados"});
+  if (car) t.push({txt:car.nombre.replace(/^Tec\. Sup\. en /,"")});
+  $("#crumbs").innerHTML = t.map((x,i) => i === t.length-1
+    ? `<span class="cr actual" aria-current="page">${esc(x.txt)}</span>`
+    : `<button class="cr" data-go="${x.go}">${esc(x.txt)}</button>`).join("");
 }
-function render(){
+function render(){ dibujar(); urlSync(); }
+function dibujar(){
   crumbs(); const ex = $("#explore");
   if (estado.carrera) return renderFicha(ex);
   if (estado.sede) return renderSede(ex);
@@ -122,18 +130,20 @@ function renderFicha(ex){
     ${revisar.length?`<div class="warn">⚠ ${esc(revisar.join(" ").replace(/^⚠\s*/,""))}</div>`:""}
     <div class="ask-row"><button class="btn-main" data-ask="Contame lo más importante de esta carrera">${IC.chat} Preguntarle al asistente</button></div>
     ${secs.map((x,i)=>{ const tb = /^estructura/i.test(x.t) ? tablaPlan(c,{horas:true}) : ""; const resto = tb ? x.lines.filter(l=>!/^\s*\d°\s*(año)?\s*\(/.test(l)) : x.lines;
-      return `<details class="sec"${i<2?" open":""}><summary>${esc(/^estructura/i.test(x.t)?"Plan de estudio (materias por año)":x.t)}</summary><div class="sec-b">${tb}${mdLite(resto)}</div></details>`; }).join("")}`;
+      return `<details class="sec" data-i="${i}"${i<2?" open":""}><summary>${esc(/^estructura/i.test(x.t)?"Plan de estudio (materias por año)":x.t)}</summary><div class="sec-b">${tb}${mdLite(resto)}</div></details>`; }).join("")}`;
 }
 $("#explore").addEventListener("click", e => {
-  const b = e.target.closest("button"); if (!b) return; activo();
+  const sm = e.target.closest("details.sec > summary");
+  if (sm) { const d = sm.parentElement; if (!d.open) { estado.sec = +d.dataset.i; history.pushState({chat:false}, "", rutaActual()); } return; }
+  const b = e.target.closest("button"); if (!b) return; activo(); estado.sec = null;
   if (b.dataset.sede){ estado.sede=b.dataset.sede; estado.tipo="todas"; estado.carrera=null; render(); setChips(); }
   else if (b.dataset.tipo){ estado.tipo=b.dataset.tipo; render(); }
   else if (b.dataset.car){ abrirCarrera(b.dataset.car); }
   else if (b.dataset.ask){ abrirChat(); consultar(b.dataset.ask); }
 });
-$("#crumbs").addEventListener("click", e => { const b=e.target.closest("button"); if(!b) return; activo();
-  if (b.dataset.go==="home"){ estado.sede=null; estado.carrera=null; } else { estado.carrera=null; } render(); setChips(); });
-function abrirCarrera(id){ const c=carrera(id); estado.carrera=id; estado.conv=id; estado.sede=c.sede; render(); setChips();
+$("#crumbs").addEventListener("click", e => { const b=e.target.closest("button"); if(!b) return; activo(); estado.sec = null;
+  if (b.dataset.go==="home"){ estado.sede=null; estado.carrera=null; estado.tipo="todas"; } else if (b.dataset.go==="sede"){ estado.carrera=null; estado.tipo="todas"; } else { estado.carrera=null; } render(); setChips(); });
+function abrirCarrera(id){ const c=carrera(id); estado.sec=null; estado.carrera=id; estado.conv=id; estado.sede=c.sede; render(); setChips();
   $("#ctx").hidden=false; $("#ctx").textContent="Hablando de: "+c.nombre; window.scrollTo({top:0,behavior:"smooth"}); }
 
 /* =====================================================================
@@ -603,12 +613,42 @@ function consultar(texto){
   sonar(); $("#msgs").scrollTop = 1e9;
 }
 
+
+/* ---------- Botón «atrás» del celular o del navegador ----------
+   Cada sede, cada pestaña (Todas / Tecnicaturas / Profesorados) y cada carrera que se abre
+   queda en el historial (#sede=…&tipo=… / #carrera=…&sec=…); también cada sección
+   desplegable que se abre en la ficha de una carrera,
+   así «atrás» vuelve a la pantalla anterior en vez de salir de la página.
+   El chat no se toca. */
+let navPop = false;
+const rutaActual = () => estado.carrera ? "#carrera=" + estado.carrera + (estado.sec != null ? "&sec=" + estado.sec : "") : estado.sede ? "#sede=" + estado.sede + (estado.tipo && estado.tipo !== "todas" ? "&tipo=" + estado.tipo : "") : "";
+function urlSync(){
+  if (navPop) return;
+  const h = rutaActual();
+  if (h === location.hash) return;
+  history.pushState({chat:false}, "", h || location.pathname + location.search);
+}
+function aplicarRuta(){
+  const m = location.hash.match(/^#(sede|carrera)=([\w-]+)(?:&tipo=(tecnicatura|profesorado))?(?:&sec=(\d+))?$/);
+  navPop = true;
+  estado.carrera = null; estado.sede = null; estado.tipo = "todas"; estado.sec = null;
+  if (m && m[1] === "sede" && SEDES.some(s => s.id === m[2])) { estado.sede = m[2]; if (m[3]) estado.tipo = m[3]; }
+  if (m && m[1] === "carrera" && CARRERAS.some(c => c.id === m[2])) { const c = carrera(m[2]); estado.carrera = c.id; estado.conv = c.id; estado.sede = c.sede; if (m[4]) estado.sec = +m[4]; }
+  render(); setChips(); navPop = false;
+  const d = estado.sec != null ? document.querySelector(`#explore details.sec[data-i="${estado.sec}"]`) : null;
+  if (d) { d.open = true; setTimeout(() => d.scrollIntoView({block:"start"}), 50); return true; }
+}
+addEventListener("popstate", () => {
+  if (rutaActual() !== location.hash) { if (!aplicarRuta()) window.scrollTo({top:0}); }
+});
+
 /* ---------- Modo muestra: reinicio automático ---------- */
 let tInactivo;
 function minutos(){ const v=parseFloat(store.get("idle_min", MINUTOS_REINICIO)); return isNaN(v)?MINUTOS_REINICIO:v; }
 function activo(){ clearTimeout(tInactivo); const m=minutos(); if (m>0) tInactivo=setTimeout(()=>{ reiniciar(); toast("Listo para la próxima persona 👋"); }, m*60000); }
 ["click","keydown","touchstart"].forEach(ev=>document.addEventListener(ev, activo, {passive:true}));
-function reiniciar(){ if (typeof cerrarChat==="function") { teaserOff=false; cerrarChat(); } estado.conv=null; estado.sede=null; estado.tipo="todas"; estado.carrera=null; $("#ctx").hidden=true; render(); setChips(); bienvenida(); window.scrollTo({top:0}); }
+function reiniciar(){ navPop = true; if (typeof cerrarChat==="function") { teaserOff=false; cerrarChat(); } estado.conv=null; estado.sede=null; estado.tipo="todas"; estado.carrera=null; $("#ctx").hidden=true; render(); setChips(); bienvenida(); window.scrollTo({top:0}); navPop = false;
+  if (location.hash) history.replaceState({chat:false}, "", location.pathname + location.search); }
 $("#btnReset").onclick = reiniciar;
 /* Botones ocultos: tocá 5 veces seguidas el logo de arriba (o Ctrl+Alt+A) para mostrarlos; se esconden solos a los 15 s */
 (() => { let toques=0, tt=null, oculto=null; const bar=document.querySelector(".top-actions");
@@ -663,5 +703,8 @@ document.addEventListener("toggle", pedirAdaptar, true);   // al abrir una secci
 addEventListener("resize", pedirAdaptar);                    // al girar el celular o cambiar el tamaño de la ventana
 /* Globito «¿Te ayudo?»: en celular y tablet se esconde cuando la persona se desplaza para leer, así no tapa contenido */
 addEventListener("scroll", () => { if (innerWidth <= 1024 && !chatAbierto() && scrollY > 80) { teaserOff = true; $("#teaser").classList.add("hide"); } }, {passive:true});
+const hashInicial = location.hash;   // permite abrir directo una sede o carrera con un enlace (#sede=… / #carrera=…)
 reiniciar(); activo();
+history.replaceState({chat:false}, "", hashInicial || location.href);
+if (hashInicial) aplicarRuta();
 setTimeout(()=>{ const l=$("#launcher"); l.classList.add("hop"); }, 900);
